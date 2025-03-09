@@ -1,6 +1,6 @@
 use std::error;
 
-use tui_input::Input;
+use crate::input::Input;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -10,8 +10,7 @@ pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
 pub struct App {
     /// Is the application running?
     pub running: bool,
-    pub text: String,
-    pub typed: Input,
+    pub input: Input,
     pub word_index: usize,
 }
 
@@ -19,8 +18,7 @@ impl Default for App {
     fn default() -> Self {
         Self {
             running: true,
-            text: "the quick brown fox jumps over the lazy dog".into(),
-            typed: Input::default(),
+            input: Input::new("the quick brown fox jumps over the lazy dog".to_string()),
             word_index: 0,
         }
     }

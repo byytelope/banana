@@ -1,8 +1,8 @@
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Layout},
     style::{Style, Stylize},
     widgets::{Block, BorderType, Borders, Paragraph},
-    Frame,
 };
 
 use crate::app::App;
@@ -31,15 +31,6 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         layout[0],
     );
 
-    frame.render_widget(
-        Paragraph::new(app.typed.value())
-            .block(
-                Block::bordered()
-                    .border_type(BorderType::Rounded)
-                    .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
-                    .border_style(Style::new().light_yellow()),
-            )
-            .centered(),
-        layout[1],
-    );
+    frame.render_widget(&app.input, layout[1]);
+    frame.set_cursor_position((layout[1].x + app.input.cursor as u16, layout[1].y))
 }

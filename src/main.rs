@@ -1,6 +1,6 @@
 use std::io;
 
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::CrosstermBackend};
 
 use crate::{
     app::{App, AppResult},
@@ -12,6 +12,7 @@ use crate::{
 pub mod app;
 pub mod event;
 pub mod handler;
+pub mod input;
 pub mod tui;
 pub mod ui;
 

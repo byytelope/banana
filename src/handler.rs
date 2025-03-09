@@ -1,6 +1,5 @@
 use crate::app::{App, AppResult};
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use tui_input::backend::crossterm::EventHandler;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Handles the key events and updates the state of [`App`].
 pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
@@ -14,7 +13,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
         }
 
         _ => {
-            app.typed.handle_event(&Event::Key(key_event));
+            app.input.handle_event(&key_event);
         }
     }
 
