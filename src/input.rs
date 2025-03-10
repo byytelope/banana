@@ -1,6 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use ratatui::layout::Alignment;
 use ratatui::prelude::*;
-use ratatui::widgets::canvas::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::{
     prelude::{Buffer, Rect},
@@ -86,7 +86,7 @@ impl Input {
             }
 
             // Delete previous word
-            (KeyCode::Backspace, KeyModifiers::CONTROL) => {
+            (KeyCode::Backspace, KeyModifiers::ALT) => {
                 if self.cursor > 0 {
                     let remaining = self.value.chars().skip(self.cursor);
                     let rev = self
@@ -104,7 +104,7 @@ impl Input {
             }
 
             // Delete next word
-            (KeyCode::Delete, KeyModifiers::CONTROL) => {
+            (KeyCode::Delete, KeyModifiers::ALT) => {
                 if self.cursor != self.value.chars().count() {
                     self.value = self
                         .value
@@ -121,8 +121,14 @@ impl Input {
                 }
             }
 
+            // Delete line
+            (KeyCode::Backspace, KeyModifiers::SUPER) => {
+                self.cursor = 0;
+                self.value.clear();
+            }
+
             // Go to previous word
-            (KeyCode::Left, KeyModifiers::CONTROL) => {
+            (KeyCode::Left, KeyModifiers::ALT) => {
                 if self.cursor > 0 {
                     self.cursor = self
                         .value
@@ -136,7 +142,7 @@ impl Input {
             }
 
             // Go to next word
-            (KeyCode::Right, KeyModifiers::CONTROL) => {
+            (KeyCode::Right, KeyModifiers::ALT) => {
                 if self.cursor != self.value.chars().count() {
                     self.cursor = self
                         .value
@@ -148,6 +154,16 @@ impl Input {
                         .map(|(i, _)| i)
                         .unwrap_or_else(|| self.value.chars().count());
                 }
+            }
+
+            // Go to start
+            (KeyCode::Left, KeyModifiers::SUPER) => {
+                self.cursor = 0;
+            }
+
+            // Go to end
+            (KeyCode::Right, KeyModifiers::SUPER) => {
+                self.cursor = self.value.chars().count();
             }
 
             _ => {}
@@ -164,7 +180,7 @@ impl WidgetRef for Input {
                     .borders(Borders::BOTTOM | Borders::LEFT | Borders::RIGHT)
                     .border_style(Style::new().light_yellow()),
             )
-            .centered();
+            .alignment(Alignment::Center);
         text.render(area, buf);
     }
 }

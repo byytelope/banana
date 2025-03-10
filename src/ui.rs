@@ -32,5 +32,14 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     );
 
     frame.render_widget(&app.input, layout[1]);
-    frame.set_cursor_position((layout[1].x + app.input.cursor as u16, layout[1].y))
+
+    let text_len = app.input.value.chars().count() as u16;
+    let area_width = layout[1].width;
+    let offset = if text_len < area_width {
+        (area_width - text_len) / 2
+    } else {
+        0
+    };
+
+    frame.set_cursor_position((layout[1].x + offset + app.input.cursor as u16, layout[1].y));
 }
