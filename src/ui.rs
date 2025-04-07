@@ -33,7 +33,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     frame.render_widget(&app.input, layout[1]);
 
-    let text_len = app.input.value.chars().count() as u16;
+    let text_len = app.input.text.chars().count() as u16;
     let area_width = layout[1].width;
     let offset = if text_len < area_width {
         (area_width - text_len) / 2

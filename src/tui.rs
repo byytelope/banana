@@ -1,11 +1,10 @@
 use crate::app::{App, AppResult};
 use crate::event::EventHandler;
 use crate::ui;
-use crossterm::event::{
-    DisableMouseCapture, EnableMouseCapture, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
+use crossterm::{
+    self,
+    terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::Terminal;
 use ratatui::backend::Backend;
 use std::io;
@@ -33,14 +32,6 @@ impl<B: Backend> Tui<B> {
     ///
     /// It enables the raw mode and sets terminal properties.
     pub fn init(&mut self) -> AppResult<()> {
-        terminal::enable_raw_mode()?;
-        crossterm::execute!(
-            io::stdout(),
-            PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES),
-            EnterAlternateScreen,
-            EnableMouseCapture
-        )?;
-
         // Define a custom panic hook to reset the terminal properties.
         // This way, you won't have your terminal messed up if an unexpected error happens.
         let panic_hook = panic::take_hook();
@@ -48,6 +39,9 @@ impl<B: Backend> Tui<B> {
             Self::reset().expect("failed to reset the terminal");
             panic_hook(panic);
         }));
+
+        terminal::enable_raw_mode()?;
+        crossterm::execute!(io::stdout(), EnterAlternateScreen)?;
 
         self.terminal.show_cursor()?;
         self.terminal.clear()?;
@@ -69,12 +63,7 @@ impl<B: Backend> Tui<B> {
     /// the terminal properties if unexpected errors occur.
     fn reset() -> AppResult<()> {
         terminal::disable_raw_mode()?;
-        crossterm::execute!(
-            io::stdout(),
-            PopKeyboardEnhancementFlags,
-            LeaveAlternateScreen,
-            DisableMouseCapture
-        )?;
+        crossterm::execute!(io::stdout(), LeaveAlternateScreen)?;
 
         Ok(())
     }
