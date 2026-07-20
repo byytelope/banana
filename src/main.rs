@@ -1,43 +1,131 @@
-use std::io;
+use std::io::{self, Write};
 
-use ratatui::{Terminal, backend::CrosstermBackend};
-
-use crate::{
-    app::{App, AppResult},
-    event::{Event, EventHandler},
-    handler::handle_key_events,
-    tui::Tui,
+use crossterm::{
+    event::{
+        self, Event, KeyCode, KeyModifiers, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
+        PushKeyboardEnhancementFlags,
+    },
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{
+    DefaultTerminal, Frame, Terminal, backend::CrosstermBackend, layout::Position,
+    widgets::Paragraph,
 };
 
-pub mod app;
-pub mod event;
-pub mod handler;
-pub mod input;
-pub mod tui;
-pub mod ui;
+fn main() -> io::Result<()> {
+    let app = {
+        let mut stdout = io::stdout();
+        crossterm::terminal::enable_raw_mode()?;
+        crossterm::execute!(
+            stdout,
+            EnterAlternateScreen,
+            PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+        )?;
+        let _terminal_restore = TerminalRestore;
+        let terminal = Terminal::new(CrosstermBackend::new(stdout));
 
-#[tokio::main]
-async fn main() -> AppResult<()> {
-    let mut app = App::new();
+        run(&mut terminal?)?
+    };
 
-    let backend = CrosstermBackend::new(io::stdout());
-    let terminal = Terminal::new(backend)?;
-    let events = EventHandler::new(250);
-    let mut tui = Tui::new(terminal, events);
-    tui.init()?;
+    // Print input on SIGINT
+    println!("{}", app.input.iter().collect::<String>());
+    Ok(())
+}
 
-    while app.running {
-        tui.draw(&mut app)?;
+struct TerminalRestore;
 
-        match tui.events.next().await? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+impl Drop for TerminalRestore {
+    fn drop(&mut self) {
+        let _ = crossterm::terminal::disable_raw_mode();
+
+        let mut stdout = io::stdout();
+        let _ = crossterm::execute!(stdout, LeaveAlternateScreen, PopKeyboardEnhancementFlags);
+        if std::thread::panicking() {
+            let _ = stdout.write(b"Panic! At The Disco\n");
+        }
+    }
+}
+
+#[derive(Default)]
+struct App {
+    input: Vec<char>,
+    expected: Vec<char>,
+    cursor: usize,
+    should_quit: bool,
+}
+
+enum JumpType {
+    Start,
+    End,
+    Prev,
+    Next,
+}
+
+enum Message {
+    InputChar(char),
+    Jump(JumpType),
+    Backspace,
+    Space,
+    Quit,
+}
+
+fn run(terminal: &mut DefaultTerminal) -> io::Result<App> {
+    let mut app = App::default();
+
+    while !app.should_quit {
+        terminal.draw(|f| view(f, &app))?;
+
+        if let Some(message) = read_message()? {
+            update(&mut app, message);
         }
     }
 
-    tui.exit()?;
+    Ok(app)
+}
 
-    Ok(())
+fn read_message() -> io::Result<Option<Message>> {
+    let Event::Key(key) = event::read()? else {
+        return Ok(None);
+    };
+
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return Ok(Some(Message::Quit));
+    }
+
+    if !key.modifiers.is_empty() {
+        return Ok(None);
+    }
+
+    let message = match key.code {
+        KeyCode::Char(c) => Message::InputChar(c),
+        KeyCode::Backspace => Message::Backspace,
+        _ => return Ok(None),
+    };
+
+    Ok(Some(message))
+}
+
+fn update(app: &mut App, message: Message) {
+    match message {
+        Message::InputChar(ch) => {
+            app.input.push(ch);
+            app.cursor += 1;
+        }
+        Message::Jump(_) => todo!(),
+        Message::Backspace => {
+            app.input.pop();
+            if app.cursor != 0 {
+                app.cursor -= 1
+            };
+        }
+        Message::Space => todo!(),
+        Message::Quit => app.should_quit = true,
+    }
+}
+
+fn view(frame: &mut Frame, app: &App) {
+    let p = Paragraph::new(app.input.iter().collect::<String>());
+
+    frame.render_widget(p, frame.area());
+    frame.set_cursor_position(Position::new(frame.area().x + app.cursor as u16, 0));
 }
